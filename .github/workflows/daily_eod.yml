@@ -3,7 +3,13 @@ name: NSE Daily EOD Closing Prices
 on:
   schedule:
     - cron: "0 12 * * 1-5"
+
   workflow_dispatch:
+    inputs:
+      trade_date:
+        description: "Optional NSE trading date for testing (YYYY-MM-DD)"
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -14,10 +20,16 @@ concurrency:
 
 jobs:
   fetch-and-publish:
+
     runs-on: ubuntu-latest
+
     timeout-minutes: 25
 
+    env:
+      NSE_TRADE_DATE: ${{ github.event.inputs.trade_date || '' }}
+
     steps:
+
       - name: Check out repository
         uses: actions/checkout@v4
         with:
@@ -41,7 +53,7 @@ jobs:
         shell: bash
         run: |
           if [[ -z "$(git status --porcelain -- data/ public/)" ]]; then
-            echo "No data changes to commit (likely a holiday or delayed bhavcopy)."
+            echo "No data changes to commit."
             exit 0
           fi
 
@@ -50,6 +62,6 @@ jobs:
 
           git add data/ public/
 
-          git commit -m "data: update NSE EOD prices $(TZ=Asia/Kolkata date +'%Y-%m-%d')"
+          git commit -m "data: update NSE EOD prices"
 
           git push origin "HEAD:${GITHUB_REF_NAME}"
